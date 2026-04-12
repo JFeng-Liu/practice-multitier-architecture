@@ -4,8 +4,10 @@
 
 import json
 from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from tortoise import Tortoise
+
 
 # Import local modules (Current monolithic deployment)
 from tier2_logic_2calculation.us_calculator import calculate_us_order
@@ -20,13 +22,24 @@ async def lifespan(app: FastAPI):
     """
     await Tortoise.init(
         db_url='sqlite://tier3_data/db.sqlite3',
-        modules={'models': ['tier2_logic_3data.models']}
+        modules={'models': ['tier2_logic_3data.models']},
+        _enable_global_fallback=True,
     )
     yield
     await Tortoise.close_connections()
 
 app = FastAPI(title="Distributed Bookstore API Gateway", lifespan=lifespan)
 
+
+# CORS Configuration (Crucial for Frontend)
+# This allows local HTML/JS to communicate with this backend API.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # Allow all origins (for local development only)
+    allow_credentials=True,
+    allow_methods=["*"],      # Allow all HTTP methods (POST, GET, etc.)
+    allow_headers=["*"],      # Allow all headers
+)
 
 # Route Dispatch Registry (The Gateway Core)
 
